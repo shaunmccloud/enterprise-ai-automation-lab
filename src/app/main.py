@@ -3,6 +3,7 @@ from uuid import UUID
 from fastapi import FastAPI, HTTPException, status
 
 from .models import AutomationRequest, AutomationRequestCreate
+from .policy.router import router as policy_router
 from .services import AutomationRequestService
 
 app = FastAPI(
@@ -10,7 +11,7 @@ app = FastAPI(
     description="Secure, AI-assisted enterprise workflow automation.",
     version="0.1.0",
 )
-
+app.include_router(policy_router)
 request_service = AutomationRequestService()
 
 

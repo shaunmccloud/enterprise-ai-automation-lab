@@ -71,3 +71,23 @@ def test_get_missing_automation_request():
 
     assert response.status_code == 404
     assert response.json() == {"detail": "Automation request not found"}
+
+
+def test_policy_evaluation_endpoint():
+    payload = {
+        "requester_role": "employee",
+        "action": "create_workspace",
+        "risk": "low",
+    }
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/policy/evaluate",
+            json=payload,
+        )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "decision": "allow",
+        "reason": "Low-risk workspace creation is permitted.",
+    }
