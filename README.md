@@ -83,6 +83,11 @@ DENY
 The engine follows a **fail-closed** approach: actions that are not explicitly permitted are denied.
 
 ---
+## 📐 Architecture Decisions
+
+Key architectural decisions are documented as Architecture Decision Records (ADRs).
+
+- [ADR-001: AI Does Not Authorize Enterprise Actions](docs/adr/001-ai-does-not-authorize-actions.md) — Separates AI-assisted reasoning from deterministic enterprise authorization.
 
 ## 🔐 Core Architecture Principle
 
