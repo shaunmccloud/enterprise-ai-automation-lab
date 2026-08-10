@@ -4,139 +4,239 @@
 
 Enterprise organizations have thousands of requests moving between employees, applications, IT teams, security teams, and business processes.
 
-The technology to automate these workflows exists. The challenge is building automation that is **secure, auditable, explainable, and practical to operate at enterprise scale.**
+The technology to automate these workflows already exists. The harder problem is building automation that is **secure, auditable, explainable, and practical to operate at enterprise scale.**
 
-The Enterprise AI Automation Lab is an open-source project exploring how AI, APIs, policy engines, and workflow automation can work together to solve that problem.
+The **Enterprise AI Automation Lab** is an open-source reference project exploring how AI, APIs, deterministic policy controls, and workflow automation can work together without allowing AI to bypass enterprise governance.
+
+> **AI recommends. Policies decide. Automation executes.**
 
 ---
 
 ## 🎯 The Problem
 
-Consider a simple request:
+Consider a request such as:
 
-> "I need access to an AI-enabled SaaS application for my team."
+> "Create a workspace for my project team and add the project members."
 
-In a traditional environment, that request may require:
+In a traditional enterprise environment, that request may involve:
 
-* Manual ticket creation
+* Request intake
+* Identity validation
 * Application identification
-* Security review
-* Data classification
+* Risk assessment
 * Policy evaluation
-* Manager approval
-* License assignment
+* Manager or security approval
+* Automation
 * User notification
 * Audit documentation
 
-The goal of this project is to demonstrate how much of that workflow can be intelligently automated **without allowing AI to bypass enterprise controls.**
+The goal of this project is to demonstrate how much of that workflow can be intelligently automated **while preserving deterministic enterprise controls.**
 
 ---
 
-## 🏗️ Architecture
+## 🏗️ Current Architecture
 
-The system separates **AI reasoning** from **deterministic enterprise controls**.
+The current implementation focuses on the request and policy layers.
 
 ```text
-                         Employee
-                            │
-                            ▼
-                    ┌───────────────┐
-                    │ Request Intake│
-                    └───────┬───────┘
-                            │
-                            ▼
-                    ┌───────────────┐
-                    │ AI Classifier │
-                    └───────┬───────┘
-                            │
-                            ▼
-                    ┌───────────────┐
-                    │ Policy Engine │
-                    └───────┬───────┘
-                            │
-                            ▼
-                    ┌───────────────┐
-                    │ Risk Assessment│
-                    └───────┬───────┘
-                            │
-                    ┌───────┴────────┐
-                    ▼                ▼
-              Auto Approval     Human Approval
-                    │                │
-                    └───────┬────────┘
-                            ▼
-                    ┌───────────────┐
-                    │  Automation   │
-                    └───────┬───────┘
-                            │
-                            ▼
-                    ┌───────────────┐
-                    │ Audit / Events│
-                    └───────────────┘
+                     Automation Request
+                              │
+                              ▼
+                     ┌─────────────────┐
+                     │    FastAPI      │
+                     │   Request API   │
+                     └────────┬────────┘
+                              │
+                              ▼
+                     ┌─────────────────┐
+                     │  Policy Router  │
+                     └────────┬────────┘
+                              │
+                              ▼
+                     ┌─────────────────┐
+                     │  Policy Engine  │
+                     └────────┬────────┘
+                              │
+                ┌─────────────┼─────────────┐
+                ▼             ▼             ▼
+             ALLOW       APPROVAL       DENY
+                              │
+                              ▼
+                       Future Workflow
+                         Execution
 ```
 
-### Core principle
+The policy engine currently evaluates:
 
-**AI recommends. Policies decide. Automation executes.**
+* Requester role
+* Requested action
+* Risk level
 
-This separation is intentional.
+and produces one of three deterministic decisions:
 
-AI systems can interpret requests, extract information, classify intent, and recommend actions. Deterministic policy controls remain responsible for enforcing organizational rules.
+```text
+ALLOW
+APPROVAL_REQUIRED
+DENY
+```
+
+The engine follows a **fail-closed** approach: actions that are not explicitly permitted are denied.
 
 ---
 
-## 🔬 What This Project Demonstrates
+## 🔐 Core Architecture Principle
 
-### Artificial Intelligence
+### AI should not be the policy engine.
 
-* Structured LLM output
-* Intent classification
-* Entity extraction
-* AI-assisted decision making
-* Provider abstraction
-* Human-in-the-loop workflows
+Large language models are powerful reasoning and classification tools, but enterprise authorization decisions should remain deterministic and auditable.
 
-### Enterprise Automation
+The intended architecture is:
 
-* Event-driven workflows
-* API integrations
-* Approval routing
-* Workflow orchestration
-* Retry and failure handling
-* Idempotent operations
+```text
+User Request
+     │
+     ▼
+AI / Intent Classification
+     │
+     ▼
+Structured Automation Request
+     │
+     ▼
+Deterministic Policy Engine
+     │
+     ├── ALLOW
+     ├── APPROVAL_REQUIRED
+     └── DENY
+     │
+     ▼
+Workflow Execution
+     │
+     ▼
+Audit Event
+```
 
-### Security
+AI can interpret intent and recommend actions.
 
-* Policy enforcement
-* Least-privilege design
-* Secrets management
-* Input validation
-* Audit logging
-* Threat modeling
+**Policy controls determine what is actually permitted.**
 
-### Engineering
+---
 
-* REST APIs
-* Python
-* FastAPI
-* PostgreSQL
-* Docker
-* Automated testing
-* GitHub Actions
+## ⚙️ Implemented
+
+### Automation Request API
+
+The application currently provides:
+
+```text
+GET  /
+GET  /health
+
+POST /api/v1/automation-requests
+GET  /api/v1/automation-requests/{request_id}
+```
+
+### Policy Evaluation API
+
+Policy decisions can be evaluated through:
+
+```text
+POST /api/v1/policy/evaluate
+```
+
+Example request:
+
+```json
+{
+  "requester_role": "employee",
+  "action": "create_workspace",
+  "risk": "low"
+}
+```
+
+Example response:
+
+```json
+{
+  "decision": "allow",
+  "reason": "Low-risk workspace creation is permitted."
+}
+```
+
+### Policy Engine
+
+The current policy model demonstrates:
+
+| Scenario                                   | Decision          |
+| ------------------------------------------ | ----------------- |
+| Employee creates a low-risk workspace      | Allow             |
+| Employee adds a user                       | Approval required |
+| Employee deletes a high-risk resource      | Approval required |
+| Manager deletes a high-risk resource       | Approval required |
+| Administrator deletes a high-risk resource | Allow             |
+| Prohibited action                          | Deny              |
+| Unrecognized/unapproved scenario           | Deny              |
+
+---
+
+## 🧪 Engineering Practices
+
+The project uses automated validation throughout development.
+
+### Testing
+
+* Pytest
+* Unit tests for policy behavior
+* API contract tests
+* Fail-closed behavior tests
+
+### Code Quality
+
+* Ruff formatting
+* Ruff linting
+* Python type-aware models with Pydantic
+* Feature branches
+* Pull requests
+* Code review
+
+### Continuous Integration
+
+GitHub Actions automatically validates:
+
+```text
+Checkout
+   ↓
+Python environment
+   ↓
+Dependency installation
+   ↓
+Format validation
+   ↓
+Lint validation
+   ↓
+Automated tests
+```
+
+The repository is designed so that changes must pass automated validation before being merged.
 
 ---
 
 ## 🧠 Design Philosophy
 
-This project is built around several principles:
+### 1. AI recommends. Policies decide.
 
-**1. AI should not be the policy engine.**
+AI systems should not independently authorize enterprise actions.
 
-Large language models are powerful reasoning tools, but enterprise authorization decisions should remain deterministic and auditable.
+### 2. Fail closed.
 
-**2. Every automated action should be explainable.**
+If the system cannot determine that an action is permitted, it should not execute the action.
 
-The system should be able to answer:
+### 3. Human approval is a first-class capability.
+
+Some actions should require human authorization rather than unrestricted automation.
+
+### 4. Every automated action should be explainable.
+
+The system should eventually be able to answer:
 
 > What happened?
 
@@ -144,68 +244,89 @@ The system should be able to answer:
 
 > Which policy allowed it?
 
+> Who requested it?
+
 > What system performed the action?
 
-**3. Human approval should be a first-class capability.**
+### 5. Integrations should be replaceable.
 
-Not every workflow should be fully automated.
+The architecture should avoid coupling the core workflow to a single SaaS vendor or AI provider.
 
-**4. Integrations should be replaceable.**
+### 6. Security belongs in the architecture.
 
-The system should not depend on a single SaaS vendor or AI provider.
-
-**5. Security should be part of the architecture—not an afterthought.**
+Identity, authorization, policy, auditability, and failure handling should be designed into the system rather than added later.
 
 ---
 
-## 🧪 Project Status
+## 🔧 Technology
 
-**Current status: Architecture and initial implementation**
+### Current
 
-This project is being developed incrementally.
+- Python 3.14
+- FastAPI
+- Pydantic
+- Pytest
+- Ruff
+- GitHub Actions
+- REST APIs
 
-### Planned capabilities
+### Planned
 
-* [ ] Request intake API
-* [ ] AI request classification
-* [ ] Structured AI responses
-* [ ] Policy evaluation engine
-* [ ] Risk scoring
-* [ ] Approval workflows
-* [ ] Workflow execution engine
-* [ ] Audit logging
-* [ ] REST API
-* [ ] PostgreSQL persistence
-* [ ] Docker deployment
-* [ ] Automated tests
-* [ ] GitHub Actions CI/CD
-* [ ] Example SaaS integrations
-* [ ] Security threat model
-* [ ] Architecture decision records
+- AI/LLM provider abstractions
+- PostgreSQL
+- Docker
+- Enterprise SaaS APIs
+- Workflow orchestration
+- Observability
 
 ---
 
 ## 🗺️ Roadmap
 
-### Phase 1 — Foundation
+### Phase 1 — Foundation ✅
 
-Build the core API, data model, request lifecycle, and development environment.
+* [x] Request intake API
+* [x] Automation request service
+* [x] Policy domain models
+* [x] Policy evaluation engine
+* [x] Policy evaluation API
+* [x] Automated tests
+* [x] GitHub Actions CI
 
 ### Phase 2 — Intelligence
 
-Add AI classification, structured output, and provider abstraction.
+* [ ] AI request classification
+* [ ] Structured AI responses
+* [ ] AI provider abstraction
+* [ ] Entity extraction
+* [ ] Confidence scoring
 
 ### Phase 3 — Governance
 
-Implement policy evaluation, risk scoring, approval routing, and auditability.
+* [ ] Risk scoring
+* [ ] Configurable policies
+* [ ] Role-based authorization expansion
+* [ ] Approval workflows
+* [ ] Audit logging
+* [ ] Policy decision history
 
 ### Phase 4 — Automation
 
-Introduce workflow execution and external system integrations.
+* [ ] Workflow execution engine
+* [ ] Idempotent operations
+* [ ] Retry and failure handling
+* [ ] External SaaS integrations
+* [ ] Notification workflows
 
 ### Phase 5 — Enterprise Hardening
 
-Add security controls, observability, testing, CI/CD, and deployment documentation.
+* [ ] PostgreSQL persistence
+* [ ] Docker deployment
+* [ ] Observability
+* [ ] Security threat model
+* [ ] Architecture decision records
+* [ ] Deployment documentation
+* [ ] Production-oriented security controls
 
 ---
 
@@ -215,7 +336,7 @@ All examples in this project use a fictional organization.
 
 No proprietary Logitech systems, data, credentials, architecture, or internal processes are used.
 
-The fictional environment is designed to represent a modern enterprise using a mixture of:
+The fictional environment represents a modern enterprise using a mixture of:
 
 * Microsoft 365
 * Google Workspace
@@ -225,6 +346,8 @@ The fictional environment is designed to represent a modern enterprise using a m
 * Identity providers
 * AI services
 
+The goal is to demonstrate **transferable enterprise architecture patterns**, not reproduce any proprietary environment.
+
 ---
 
 ## 👨‍💻 About
@@ -232,6 +355,10 @@ The fictional environment is designed to represent a modern enterprise using a m
 Built by **Shaun McCloud**, an enterprise technology leader focused on AI, automation, digital workplace architecture, security, and organizational transformation.
 
 My work sits at the intersection of **technology, people, and business outcomes**.
+
+This project explores a question I believe will become increasingly important as enterprise AI adoption accelerates:
+
+> **How do we make AI capable of doing useful work without giving it uncontrolled authority?**
 
 ---
 
