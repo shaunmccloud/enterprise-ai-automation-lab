@@ -16,12 +16,14 @@ class PolicyEngine:
                 reason="This action is prohibited by policy.",
             )
 
-        if request.action == AutomationAction.CREATE_WORKSPACE:
+        if (
+            request.action == AutomationAction.CREATE_WORKSPACE
+            and request.risk == RiskLevel.LOW
+        ):
             return PolicyEvaluation(
                 decision=PolicyDecision.ALLOW,
                 reason="Low-risk workspace creation is permitted.",
             )
-
         if request.action == AutomationAction.ADD_USER:
             return PolicyEvaluation(
                 decision=PolicyDecision.APPROVAL_REQUIRED,
