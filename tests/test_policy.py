@@ -90,3 +90,18 @@ def test_administrator_can_delete_high_risk_resource():
     result = engine.evaluate(request)
 
     assert result.decision == PolicyDecision.ALLOW
+
+
+def test_unknown_risk_is_denied():
+    engine = PolicyEngine()
+
+    request = PolicyEvaluationRequest(
+        requester_role=RequesterRole.EMPLOYEE,
+        action=AutomationAction.CREATE_WORKSPACE,
+        risk=RiskLevel.UNKNOWN,
+    )
+
+    result = engine.evaluate(request)
+
+    assert result.decision == PolicyDecision.DENY
+    assert result.reason == "No policy explicitly permits this action."
