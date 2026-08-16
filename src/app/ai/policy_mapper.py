@@ -38,6 +38,9 @@ class AIClassificationPolicyMapper:
         ):
             return AutomationAction.CREATE_WORKSPACE
 
+        if classification.intent == AutomationIntent.ADD_USER:
+            return AutomationAction.ADD_USER
+
         if classification.intent == AutomationIntent.DELETE:
             return AutomationAction.DELETE_RESOURCE
 

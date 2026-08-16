@@ -20,6 +20,14 @@ class MockRequestClassifier(RequestClassifier):
                 confidence=0.95,
                 reasoning="The request contains a delete operation.",
             )
+        if "add a user" in normalized_request or "add user" in normalized_request:
+            return AIRequestClassification(
+                intent=AutomationIntent.ADD_USER,
+                resource="user",
+                risk=RiskLevel.MEDIUM,
+                confidence=0.95,
+                reasoning="The request contains an add-user operation.",
+            )
 
         if "create" in normalized_request:
             return AIRequestClassification(

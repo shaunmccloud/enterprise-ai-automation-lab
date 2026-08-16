@@ -30,3 +30,12 @@ def test_mock_classifier_handles_unknown_request():
     assert result.intent == AutomationIntent.UNKNOWN
     assert result.resource == "unknown"
     assert result.risk == RiskLevel.UNKNOWN
+
+
+def test_mock_classifier_classifies_add_user():
+    classifier = MockRequestClassifier()
+
+    result = classifier.classify("Add a user to the project workspace.")
+
+    assert result.intent == AutomationIntent.ADD_USER
+    assert result.resource == "user"
