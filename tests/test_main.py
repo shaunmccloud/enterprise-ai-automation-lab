@@ -139,3 +139,117 @@ def test_governance_evaluate_denies_unknown_request():
 
     assert response.status_code == 200
     assert response.json()["decision"] == "deny"
+
+
+def test_create_approval_endpoint():
+    payload = {
+        "requester_role": "employee",
+        "action": "add_user",
+        "reason": "Adding a user requires approval.",
+    }
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/approvals",
+            json=payload,
+        )
+
+    assert response.status_code == 201
+
+    data = response.json()
+
+    assert data["requester_role"] == "employee"
+    assert data["action"] == "add_user"
+    assert data["reason"] == "Adding a user requires approval."
+    assert data["status"] == "pending"
+    assert "id" in data
+
+
+def test_get_approval_endpoint():
+    payload = {
+        "requester_role": "employee",
+        "action": "add_user",
+        "reason": "Adding a user requires approval.",
+    }
+
+    with TestClient(app) as client:
+        create_response = client.post(
+            "/api/v1/approvals",
+            json=payload,
+        )
+
+        approval_id = create_response.json()["id"]
+
+        response = client.get(
+            f"/api/v1/approvals/{approval_id}",
+        )
+
+    assert response.status_code == 200
+    assert response.json()["id"] == approval_id
+    assert response.json()["status"] == "pending"
+
+
+def test_get_unknown_approval_returns_404():
+    with TestClient(app) as client:
+        response = client.get(
+            "/api/v1/approvals/00000000-0000-0000-0000-000000000000",
+        )
+
+    assert response.status_code == 404
+
+
+def test_approve_approval_endpoint():
+    payload = {
+        "requester_role": "employee",
+        "action": "add_user",
+        "reason": "Adding a user requires approval.",
+    }
+
+    with TestClient(app) as client:
+        create_response = client.post(
+            "/api/v1/approvals",
+            json=payload,
+        )
+
+        approval_id = create_response.json()["id"]
+
+        response = client.post(
+            f"/api/v1/approvals/{approval_id}/approve",
+        )
+
+    assert response.status_code == 200
+    assert response.json()["id"] == approval_id
+    assert response.json()["status"] == "approved"
+
+
+def test_reject_approval_endpoint():
+    payload = {
+        "requester_role": "employee",
+        "action": "add_user",
+        "reason": "Adding a user requires approval.",
+    }
+
+    with TestClient(app) as client:
+        create_response = client.post(
+            "/api/v1/approvals",
+            json=payload,
+        )
+
+        approval_id = create_response.json()["id"]
+
+        response = client.post(
+            f"/api/v1/approvals/{approval_id}/reject",
+        )
+
+    assert response.status_code == 200
+    assert response.json()["id"] == approval_id
+    assert response.json()["status"] == "rejected"
+
+
+def test_approve_unknown_approval_returns_404():
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/approvals/00000000-0000-0000-0000-000000000000/approve",
+        )
+
+    assert response.status_code == 404
