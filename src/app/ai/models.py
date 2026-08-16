@@ -12,6 +12,7 @@ class RiskLevel(str, Enum):
 
 class AutomationIntent(str, Enum):
     CREATE = "create"
+    ADD_USER = "add_user"
     UPDATE = "update"
     DELETE = "delete"
     READ = "read"
