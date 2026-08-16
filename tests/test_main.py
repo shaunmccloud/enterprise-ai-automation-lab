@@ -91,3 +91,51 @@ def test_policy_evaluation_endpoint():
         "decision": "allow",
         "reason": "Low-risk workspace creation is permitted.",
     }
+
+
+def test_governance_evaluate_allows_low_risk_workspace():
+    payload = {
+        "request": "Create a workspace for my project team.",
+        "requester_role": "employee",
+    }
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/governance/evaluate",
+            json=payload,
+        )
+
+    assert response.status_code == 200
+    assert response.json()["decision"] == "allow"
+
+
+def test_governance_evaluate_requires_approval_for_delete():
+    payload = {
+        "request": "Delete a resource from the project workspace.",
+        "requester_role": "employee",
+    }
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/governance/evaluate",
+            json=payload,
+        )
+
+    assert response.status_code == 200
+    assert response.json()["decision"] == "approval_required"
+
+
+def test_governance_evaluate_denies_unknown_request():
+    payload = {
+        "request": "Do something completely unknown.",
+        "requester_role": "employee",
+    }
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/governance/evaluate",
+            json=payload,
+        )
+
+    assert response.status_code == 200
+    assert response.json()["decision"] == "deny"

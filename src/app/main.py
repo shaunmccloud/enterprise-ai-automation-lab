@@ -2,6 +2,7 @@ from uuid import UUID
 
 from fastapi import FastAPI, HTTPException, status
 
+from .governance.router import router as governance_router
 from .models import AutomationRequest, AutomationRequestCreate
 from .policy.router import router as policy_router
 from .services import AutomationRequestService
@@ -12,6 +13,7 @@ app = FastAPI(
     version="0.1.0",
 )
 app.include_router(policy_router)
+app.include_router(governance_router)
 request_service = AutomationRequestService()
 
 
